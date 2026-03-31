@@ -224,6 +224,8 @@ Vector ek graph pe point ki tarah hota hai:
 
 **Problem:** Agar sirf vectors use karein, toh model ko nahi pata kaunsa word pehle aaya, kaunsa baad mein.
 
+positional endoding basically har token ke vector mein uski position ka information add karta hai.
+
 **Example:**
 ```
 "The cat sat on the mat"   ← same words
@@ -247,6 +249,11 @@ Position + context milake model decide karta hai "bank" ka matlab kya hai — ya
 ## 9. Self Attention — Sabse Important Concept 🎯
 
 **Self Attention = Har token dusre saare tokens ko "dekhta" hai aur decide karta hai — konse tokens mere liye important hain?**
+
+self attention basically har token ko poochhta hai:
+- "Main kya hoon?"
+- "Main kahan hoon?" (position)
+- "Main kiske saath relate karta hoon?"
 
 Har token teen cheezein poochhta hai:
 - **What** — main kya hoon?
@@ -274,6 +281,8 @@ Attention score matrix banata hai (5×5 ya 6×6 grid of scores)
 - Ek attention mechanism nahi, **kai saare parallel attention mechanisms** chalte hain
 - Har "head" alag relationship seekhta hai
 - Sab ke results combine hote hain
+
+basically it meanss focusing on different aspects of the input simultaneously.
 
 **Analogy:** Ek scene ko alag alag cameras se dekho — ek front se, ek side se, ek top se — phir saari images combine karo.
 
@@ -364,6 +373,7 @@ Input: <start> How are you? <end>
 ## 14. Temperature — Creativity Control 🌡️
 
 **Temperature = model ki creativity / randomness ka dial**
+
 
 | Temperature | Output |
 |-------------|--------|
