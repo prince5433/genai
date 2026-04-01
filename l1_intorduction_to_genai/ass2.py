@@ -1,41 +1,27 @@
-class SimpleTokenizer:
-    def __init__(self):
-        # Character-level tokenizer
-        self.chars = list("abcdefghijklmnopqrstuvwxyz "
-                         "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                         "0123456789.,!?<>")
-        self.char_to_id = {ch: i for i, ch in enumerate(self.chars)}
-        self.id_to_char = {i: ch for i, ch in enumerate(self.chars)}
-        
-        # Special tokens
-        self.START_TOKEN = len(self.chars)
-        self.END_TOKEN = len(self.chars) + 1
+class ASCIITokenizer:
     
-    def encode(self, text: str) -> list[int]:
-        """Text → Token IDs"""
-        tokens = [self.START_TOKEN]
-        for char in text:
-            if char in self.char_to_id:
-                tokens.append(self.char_to_id[char])
-        tokens.append(self.END_TOKEN)
+    def encode(self, text):
+        # Har character ko uske ASCII number me convert karte hain
+        # ord(c) → character ko integer (ASCII value) me convert karta hai
+        tokens = [ord(c) for c in text]
         return tokens
-    
-    def decode(self, token_ids: list[int]) -> str:
-        """Token IDs → Text"""
-        text = ""
-        for token_id in token_ids:
-            if token_id == self.START_TOKEN:
-                continue
-            elif token_id == self.END_TOKEN:
-                break
-            elif token_id in self.id_to_char:
-                text += self.id_to_char[token_id]
+
+    def decode(self, tokens):
+        # Har ASCII number ko wapas character me convert karte hain
+        # chr(t) → integer ko character me convert karta hai
+        text = ''.join(chr(t) for t in tokens)
         return text
 
-# Test karo
-tokenizer = SimpleTokenizer()
-encoded = tokenizer.encode("Hello World")
-print(encoded)   # [66, 7, 4, 11, 11, 14, 53, 22, 14, 17, 11, 3, 67]
 
+# Test
+tokenizer = ASCIITokenizer()
+
+# Encoding: text → numbers
+encoded = tokenizer.encode("Hello World")
+print(encoded)  
+# Example output: [72, 101, 108, 108, 111, 32, 87, 111, 114, 108, 100]
+
+# Decoding: numbers → text
 decoded = tokenizer.decode(encoded)
-print(decoded)   # "Hello World"    
+print(decoded)  
+# Output: "Hello World"
