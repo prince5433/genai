@@ -1,6 +1,8 @@
 from dotenv import load_dotenv
 from openai import OpenAI
 
+#few shot prompting me model ko kuch examples ke through samjha rahe hai ki hame kis tarah ka output chahiye. isme ham model ko ek system prompt denge jisme ham usko instructions denge ki wo kis tarah se behave kare, uska tone kaisa ho, aur ham usko kuch examples bhi denge jisse usko ye samajh me aa jaye ki ham kis tarah ka output expect kar rahe hai. isse model ko apne response ko generate karne me madad milegi aur hame better output milega.
+
 load_dotenv()
 client = OpenAI()
 
