@@ -3,6 +3,7 @@ import json
 from dotenv import load_dotenv
 from openai import OpenAI
 
+#chain of thought prompting me basicall ham model ko instruct karte hai ki wo apne thought process ko step by step break down kare aur hame dikhaye taki hame pata chale ki model problem ko kaise solve kar raha hai. isme ham model ko ek system prompt dete hai jisme ham usko instructions dete hai ki wo apne thought process ko kaise break down kare, uska output format kya ho, aur ham usko ek example bhi dete hai jisse usko ye samajh me aa jaye ki ham kis tarah ka output expect kar rahe hai. isse model ko apne response ko generate karne me madad milegi aur hame better output milega.
 load_dotenv()
 
 client = OpenAI()
