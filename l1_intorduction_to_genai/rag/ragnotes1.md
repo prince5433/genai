@@ -432,6 +432,8 @@ GPT-4, Claude, Gemini, LLaMA — koi bhi kaam karta hai
 
 *Notes by Claude — RAG System Architecture*
 
+## halucination basically ek problem hai jisme LLM apne imagination se jawab banata hai, jo ki real data pe based nahi hota. RAG me hum apne data ko aise structure me organize karte hain jisse hum usme se relevant chunks ko efficiently retrieve kar sakein jab user query aati hai, taaki LLM ko real data mile aur hallucination kam ho.
+
 ## ya to sare functions jo hai use ek ek krke banao ya to langchain use kro jisme sare functions already defined hote hai. RAG me hum apne data ko aise structure me organize karte hain jisse hum usme se relevant chunks ko efficiently retrieve kar sakein jab user query aati hai.
 
 ## langchain basically ek framework hai jo RAG applications banane me madad karta hai. Isme pre-built components hote hain jaise ki document loaders, vector stores, retrievers, aur LLM wrappers, jisse developers ko apne RAG system ko jaldi aur efficiently build karne me madad milti hai. Langchain ke through hum apne data ko easily manage kar sakte hain aur LLM ke saath seamlessly integrate kar sakte hain.
