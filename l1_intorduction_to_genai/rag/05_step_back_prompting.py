@@ -235,3 +235,14 @@ Specific Context:
 # run
 if __name__ == "__main__":
     main()
+
+# -----------------------------------------------------------------------------
+# FULL FLOW (END OF FILE)
+# -----------------------------------------------------------------------------
+# 1) User specific question input karta hai
+# 2) generate_stepback() uska broader version banata hai
+# 3) retrieve() original question ka context lata hai
+# 4) retrieve() step-back question ka broader context lata hai
+# 5) Dono contexts combine hote hain
+# 6) Final LLM answer banta hai
+# 7) Output print hota hai

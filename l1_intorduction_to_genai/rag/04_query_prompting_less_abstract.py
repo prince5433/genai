@@ -171,3 +171,13 @@ def main():
 # run
 if __name__ == "__main__":
     main()
+
+# -----------------------------------------------------------------------------
+# FULL FLOW (END OF FILE)
+# -----------------------------------------------------------------------------
+# 1) User question input hota hai
+# 2) decompose() question ko 3 simple steps me todta hai
+# 3) solve_steps() har step ko previous answers ke saath solve karta hai
+# 4) Answers list me save hote hain
+# 5) final_answer() sab answers ko combine karta hai
+# 6) Final response print hota hai

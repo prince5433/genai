@@ -108,3 +108,17 @@ chat_result = client.chat.completions.create(
 
 # Answer print karo.
 print("Answer:", chat_result.choices[0].message.content)
+
+# -----------------------------------------------------------------------------
+# FULL FLOW (END OF FILE)
+# -----------------------------------------------------------------------------
+# 1) .env se API keys aur settings load hoti hain
+# 2) PDF file ka path check hota hai
+# 3) PDF pages load hote hain
+# 4) Text splitter un pages ko chunks me todta hai
+# 5) OpenAI embeddings chunks ko vectors me convert karti hain
+# 6) Agar INGEST_DATA True ho to chunks Qdrant me save hote hain
+# 7) Existing collection se similar chunks retrieve hote hain
+# 8) Context text banakar OpenAI model ko diya jata hai
+# 9) Model answer generate karta hai
+# 10) Final answer print hota hai

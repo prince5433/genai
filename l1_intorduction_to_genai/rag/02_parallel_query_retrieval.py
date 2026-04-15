@@ -187,3 +187,14 @@ def main():
 # program start yaha se hota hai
 if __name__ == "__main__":
     main()
+
+# -----------------------------------------------------------------------------
+# FULL FLOW (END OF FILE)
+# -----------------------------------------------------------------------------
+# 1) User question input hota hai
+# 2) generate_queries() question ko 3 short queries me todta hai
+# 3) parallel_retrieval() tino queries ko ek saath run karta hai
+# 4) Har query se short facts milte hain
+# 5) Sab results collect hote hain
+# 6) generate_final_answer() un results se final response banata hai
+# 7) Final answer print hota hai

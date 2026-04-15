@@ -209,3 +209,14 @@ def main():
 # run
 if __name__ == "__main__":
     main()
+
+# -----------------------------------------------------------------------------
+# FULL FLOW (END OF FILE)
+# -----------------------------------------------------------------------------
+# 1) User question input hota hai
+# 2) generate_queries() 3 search queries banata hai
+# 3) parallel_retrieve() har query ke results parallel me nikalta hai
+# 4) rrf_fusion() sab lists ko ek ranked list me merge karta hai
+# 5) Ranked docs final answer ke liye use hote hain
+# 6) final_answer() response banata hai
+# 7) Output print hota hai
