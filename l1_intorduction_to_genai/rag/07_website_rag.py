@@ -1,389 +1,294 @@
-# =============================================================================
-# WEBSITE RAG USING WEBBASELOADER (LANGCHAIN)
-# =============================================================================
+# Yeh script website-based RAG banata hai using OpenAI + Qdrant.
 
-# 📌 KYA BAN RAHA HAI?
-# Yeh ek simple RAG (Retrieval Augmented Generation) system hai jo:
-# 1. Website se data scrape karega (WebBaseLoader se)
-# 2. Us data ko chunks me todhega
-# 3. Embeddings banayega (OpenAI se)
-# 4. Store karega (in-memory list, simple version)
-# 5. Query aane par relevant chunks retrieve karega
-# 6. LLM se final answer generate karega
-
-# -----------------------------------------------------------------------------
-# 📌 RAG KYA HOTA HAI?
-# -----------------------------------------------------------------------------
-
-# RAG = Retrieval + Generation
-
-# Step:
-# User question → relevant docs retrieve → LLM answer banata hai
-
-# -----------------------------------------------------------------------------
-# 📌 WEBBASELOADER KYA KARTA HAI?
-# -----------------------------------------------------------------------------
-
-# LangChain ka WebBaseLoader:
-# 👉 kisi bhi website ka content scrape karta hai
-# 👉 clean text format me deta hai
-
-# -----------------------------------------------------------------------------
-# 📌 FLOW
-# -----------------------------------------------------------------------------
-
-# URL → scrape → chunk → embed → store
-# User Query → embed → similarity search → context
-# Context + Query → LLM → Final Answer
-
-# -----------------------------------------------------------------------------
-# 📌 INTERVIEW LINE
-# -----------------------------------------------------------------------------
-
-# "Built a website-based RAG system using LangChain WebBaseLoader to scrape,
-# embed, and retrieve web content for answering queries."
-
-# =============================================================================
-# CODE START
-# =============================================================================
-
-
-# ------------------------------
-# IMPORTS
-# ------------------------------
-
-# OS module: environment variables set/read karne ke liye
+# OS level env variables read/set karne ke liye.
 import os
-
-# USER_AGENT set kar dete hain taaki web loading warning na aaye
-os.environ.setdefault("USER_AGENT", "website-rag/1.0")
-
-# .env file (OPENAI_API_KEY etc.) load karne ke liye
+# Python version check ke liye.
+import sys
+# .env file se environment variables load karne ke liye.
 from dotenv import load_dotenv
 
-# Website ka content text me laane ke liye loader
-from langchain_community.document_loaders import WebBaseLoader
-
-# Bada text chote chunks me todne ke liye splitter
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-
-# OpenAI API client
-from openai import OpenAI
-
-# Numerical operations (cosine similarity) ke liye
-import numpy as np
-
-# Regex se tokenization/cleanup ke liye
-import re
-
-# URL valid hai ya nahi check karne ke liye
+# URL ko parse karke validate karne ke liye.
 from urllib.parse import urlparse
 
-# ------------------------------
-# SETUP
-# ------------------------------
-
-# .env file se env vars load karo (OPENAI_API_KEY)
+# Env vars start me load karo taaki baaki modules ko values mil jaye.
 load_dotenv()
+# USER_AGENT default set karo taaki WebBaseLoader warning na de.
+os.environ.setdefault("USER_AGENT", "rag-qdrant-prod/1.0")
 
-# OpenAI client object banao
-client = OpenAI()
+# Website content fetch/load karne ke liye loader.
+from langchain_community.document_loaders import WebBaseLoader
+# Documents ko chunks me todne ke liye text splitter.
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-# ------------------------------
-# STEP 1: LOAD WEBSITE
-# ------------------------------
+# OpenAI embedding model wrapper.
+from langchain_openai import OpenAIEmbeddings
+# OpenAI chat model wrapper.
+from langchain_openai import ChatOpenAI
 
-def load_website(url):
+# Qdrant vector store integration (new package path).
+from langchain_qdrant import QdrantVectorStore
 
-    # URL ko WebBaseLoader me do
-    loader = WebBaseLoader(url)
 
-    # Website ka cleaned content documents ke form me laao
-    docs = loader.load()
+# Embedding model initialize karo (text -> vector).
+embeddings = OpenAIEmbeddings(
+    # Chhota, fast aur cost-effective embedding model.
+    model="text-embedding-3-small"
+)
 
-    # Loaded documents return karo
-    return docs
+# LLM initialize karo jo final answer banayega.
+llm = ChatOpenAI(
+    # Chat completion ke liye selected model.
+    model="gpt-4o-mini",
+    # Deterministic output ke liye temperature 0.
+    temperature=0
+)
+
 
 def is_valid_url(url):
-    # URL ko parse karke scheme/netloc check karte hain
+    # URL ko parse karo (scheme, netloc, path etc.).
     parsed = urlparse(url)
-
-    # Sirf http/https and proper domain accepted
+    # Valid tab hi manenge jab scheme http/https ho aur domain present ho.
     return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
 
-# ------------------------------
-# STEP 2: SPLIT INTO CHUNKS
-# ------------------------------
+
+def load_website(url):
+    # Loader object banao with URL and custom User-Agent.
+    loader = WebBaseLoader(
+        # Jo website scrape karni hai.
+        web_path=url,
+        # Request header me User-Agent bhejo.
+        header_template={"User-Agent": os.environ["USER_AGENT"]}
+    )
+    # Website se docs load karo.
+    docs = loader.load()
+    # Loaded docs list return karo.
+    return docs
+
 
 def split_docs(docs):
 
-    # Splitter config:
-    # chunk_size = ek chunk me max chars
-    # chunk_overlap = adjacent chunks me shared chars
+    # Splitter config set karo.
     splitter = RecursiveCharacterTextSplitter(
-        chunk_size=500,         # ek chunk ka size
-        chunk_overlap=100       # overlap taaki context na tute
+        # Ek chunk me approx 500 chars.
+        chunk_size=500,
+        # Context continuity ke liye 100 chars overlap.
+        chunk_overlap=100
     )
 
-    # Documents ko chote manageable chunks me convert karo
+    # Input docs ko chunks me convert karo.
     chunks = splitter.split_documents(docs)
 
-    # Chunk list return karo
+    # Chunk list return karo.
     return chunks
 
-# ------------------------------
-# STEP 3: CREATE EMBEDDINGS
-# ------------------------------
 
-def get_embeddings(texts):
+def create_qdrant_store(chunks):
+    # Qdrant URL env se lo, warna localhost default use karo.
+    qdrant_url = os.getenv("QDRANT_URL", "http://localhost:6333")
+    # Collection ka naam env se lo, warna rag_collection use karo.
+    collection_name = os.getenv("QDRANT_COLLECTION", "rag_collection")
+    # Connection fail ho to memory fallback allowed hai ya nahi.
+    fallback_to_memory = os.getenv("QDRANT_FALLBACK_TO_MEMORY", "true").lower() == "true"
 
-    # OpenAI embedding model se vector create karo
-    # input me text list jaata hai
-    response = client.embeddings.create(
-        model="text-embedding-3-small",
-        input=texts
+    try:
+        # Pehle external Qdrant (Docker/server) par documents index karo.
+        vector_store = QdrantVectorStore.from_documents(
+            # Chunked documents to be embedded and stored.
+            documents=chunks,
+            # Embedding function/model.
+            embedding=embeddings,
+            # Qdrant server URL.
+            url=qdrant_url,
+            # Target collection name.
+            collection_name=collection_name,
+            # Version check warning avoid karne ke liye.
+            check_compatibility=False
+        )
+        # Success ho gaya to vector store return karo.
+        return vector_store
+    except Exception as exc:
+        # Agar fallback disabled hai to explicit runtime error throw karo.
+        if not fallback_to_memory:
+            raise RuntimeError(
+                "Qdrant connection failed. Start Qdrant on localhost:6333 "
+                "(or set QDRANT_URL) and retry. "
+                f"Original error: {exc}"
+            ) from exc
+
+        # User ko warning do ki external Qdrant connect nahi hua.
+        print(
+            "Warning: Could not connect to external Qdrant at "
+            f"{qdrant_url}. Falling back to in-memory vector store."
+        )
+        # Original exception details bhi print karo for debugging.
+        print(f"Details: {exc}")
+
+        # Fallback: in-memory vector store banao (temporary, RAM-only).
+        return QdrantVectorStore.from_documents(
+            # Same docs memory store me daalo.
+            documents=chunks,
+            # Same embeddings use karo.
+            embedding=embeddings,
+            # :memory: matlab persistent DB nahi, sirf RAM.
+            location=":memory:",
+            # Same collection name use karo.
+            collection_name=collection_name
+        )
+
+
+def warn_on_python_version():
+    # Python version 3.14 ya above ho to warning show karo.
+    if sys.version_info >= (3, 14):
+        # Friendly display ke liye short version string banao.
+        version = f"{sys.version_info.major}.{sys.version_info.minor}"
+        # Compatibility guidance print karo.
+        print(
+            "Warning: Python "
+            f"{version} may be incompatible with LangChain components using Pydantic v1. "
+            "Use Python 3.11 to 3.13 for best compatibility."
+        )
+
+
+def retrieve(query, vector_store):
+
+    # User query ke against similarity search chalao.
+    docs = vector_store.similarity_search(
+        # Search query text.
+        query,
+        # Top 5 relevant chunks return karo.
+        k=5
     )
 
-    # Response object se vectors निकाल kar list return karo
-    return [item.embedding for item in response.data]
+    # Documents se sirf page_content निकाल ke list return karo.
+    return [doc.page_content for doc in docs]
 
-# ------------------------------
-# STEP 4: STORE (IN-MEMORY)
-# ------------------------------
-
-# Simple in-memory DB (demo purpose)
-# Har item: {"text": chunk_text, "vector": embedding}
-VECTOR_DB = []
-
-def store_embeddings(chunks):
-
-    # Har chunk ka original text nikalo
-    texts = [c.page_content for c in chunks]
-
-    # In texts ki embeddings banao
-    vectors = get_embeddings(texts)
-
-    # Text + vector pair ko VECTOR_DB me store karo
-    for i in range(len(chunks)):
-        VECTOR_DB.append({
-            "text": texts[i],
-            "vector": vectors[i]
-        })
-
-# ------------------------------
-# STEP 5: SIMILARITY SEARCH
-# ------------------------------
-
-def cosine_similarity(a, b):
-    # Cosine similarity formula ka denominator
-    denominator = np.linalg.norm(a) * np.linalg.norm(b)
-
-    # Safety: denominator zero hua to divide-by-zero avoid karo
-    if denominator == 0:
-        return 0.0
-
-    # Final cosine score return
-    return np.dot(a, b) / denominator
-
-def normalize_query(text):
-    # Query normalize karte hain taaki matching improve ho
-    # Example: c++ ko words me convert kiya gaya
-    normalized = text.lower().replace("c++", "c plus plus c")
-
-    # Extra spaces hatao
-    normalized = re.sub(r"\s+", " ", normalized).strip()
-
-    # Clean query return
-    return normalized
-
-def tokenize_for_overlap(text):
-    # Regex se text ko tokens me todte hain
-    tokens = re.findall(r"[a-zA-Z0-9_\+#]+", text.lower())
-
-    # Very short tokens (1 char) drop kar dete hain
-    return set(token for token in tokens if len(token) > 1)
-
-def keyword_overlap_score(query, text):
-    # Query tokens
-    q_tokens = tokenize_for_overlap(query)
-
-    # Agar query tokens hi nahi bache to score 0
-    if not q_tokens:
-        return 0.0
-
-    # Document tokens
-    d_tokens = tokenize_for_overlap(text)
-
-    # Common tokens nikaalo
-    overlap = q_tokens.intersection(d_tokens)
-
-    # Query coverage score:
-    # Query ke kitne tokens document me mil gaye
-    return len(overlap) / len(q_tokens)
-
-def retrieve(query, top_k=5):
-
-    # Agar DB empty hai to context nahi milega
-    if not VECTOR_DB:
-        return []
-
-    # Query normalize karo
-    normalized_query = normalize_query(query)
-
-    # Query ka embedding banao
-    query_vec = get_embeddings([normalized_query])[0]
-
-    # Har chunk ka final score yahan collect hoga
-    scores = []
-
-    # Hybrid retrieval:
-    # 1) Semantic similarity (vector)
-    # 2) Keyword overlap (exact-ish match)
-    for item in VECTOR_DB:
-        # Semantic score
-        semantic_score = float(cosine_similarity(query_vec, item["vector"]))
-
-        # Keyword overlap score
-        overlap_score = keyword_overlap_score(normalized_query, item["text"])
-
-        # Weighted final score
-        score = (0.75 * semantic_score) + (0.25 * overlap_score)
-
-        # Score + text pair store
-        scores.append((score, item["text"]))
-
-    # High score pehle lane ke liye descending sort
-    scores.sort(reverse=True)
-
-    # Top-k best chunks return karo
-    return [text for _, text in scores[:top_k]]
-
-# ------------------------------
-# STEP 6: FINAL ANSWER
-# ------------------------------
 
 def generate_answer(query, context_chunks):
 
-    # Agar context nahi mila to user ko actionable message do
+    # Agar retrieval se context empty aaya to direct message return karo.
     if not context_chunks:
-        return (
-            "Mujhe relevant context nahi mila. Try karo:\n"
-            "1) query ko specific banao\n"
-            "2) same website ka exact topic URL do\n"
-            "3) ya top_k badhao"
-        )
+        return "No relevant context found."
 
-    # Retrieved chunks ko ek single context string me join karo
+    # Multiple chunks ko ek context string me join karo.
     context = "\n\n".join(context_chunks)
 
-    # LLM ko context + user query bhejkar answer generate karo
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    # System instruction: concise and context-grounded answer
-                    "You are a helpful tutor. Use the provided context first and give a direct answer. "
-                    "If the user asks a close variant (for example C++ vs C), answer from available context "
-                    "and clearly mention the scope in one short line. Keep the answer concise with bullet points."
-                )
-            },
-            {
-                "role": "user",
-                "content": f"""
-Context:
-{context}
+    # LLM prompt tayyar karo jisme context + question ho.
+    prompt = f"""
+    You are a helpful assistant.
 
-Question:
-{query}
-"""
-            }
-        ]
-    )
+    Context:
+    {context}
 
-    # Model ka final text answer return
-    return response.choices[0].message.content
+    Question:
+    {query}
 
-# ------------------------------
-# MAIN (CLI VERSION)
-# ------------------------------
+    Answer in bullet points.
+    """
+
+    # Chat model invoke karke response lo.
+    response = llm.invoke(prompt)
+
+    # Final generated text return karo.
+    return response.content
+
 
 def main():
 
-    # User se website URL input lo
+    # Start me Python compatibility warning check.
+    warn_on_python_version()
+
+    # User se target website URL input lo.
     url = input("Enter website URL: ")
 
-    # URL invalid hua to yahin stop
+    # Invalid URL ho to turant stop kar do.
     if not is_valid_url(url):
-        print("Invalid URL. Please enter a valid http/https URL.")
+        # Invalid URL message print karo.
+        print("Invalid URL")
+        # Function end.
         return
 
-    # Pipeline setup block (load -> split -> store)
     try:
-        # STEP 1: load website
+        # Website data load karo.
         docs = load_website(url)
 
-        # STEP 2: split
+        # Loaded docs ko chunks me split karo.
         chunks = split_docs(docs)
 
-        # Safety: no chunks means no content
+        # Agar chunks nahi bane to process stop.
         if not chunks:
-            print("No content found from this URL.")
+            # No content message print karo.
+            print("No content found")
+            # Function end.
             return
 
-        # STEP 3: store embeddings
-        store_embeddings(chunks)
+        # Qdrant vector store create/connect/index karo.
+        vector_store = create_qdrant_store(chunks)
 
-    # Agar setup me koi error aaye to handle karo
-    except Exception as exc:
-        print(f"Failed to prepare RAG pipeline: {exc}")
+    except Exception as e:
+        # Runtime error ko readable way me print karo.
+        print(f"Error: {e}")
+        # Error case me function end.
         return
 
-    # User ko batado kitne chunks load hue
-    print(f"\nLoaded {len(chunks)} chunks")
+    # User ko successful chunk count show karo.
+    print(f"Loaded {len(chunks)} chunks")
 
-    # Q&A loop: user multiple questions pooch sakta hai
+    # Interactive Q&A loop start.
     while True:
+        # Har iteration me query input lo.
         query = input("\nAsk question (type 'exit'): ")
 
-        # Exit command
+        # exit type karte hi loop break.
         if query == "exit":
             break
 
-        # retrieve relevant chunks
-        context = retrieve(query)
+        # Query ke liye relevant context chunks lao.
+        context = retrieve(query, vector_store)
 
-        # final answer
-        try:
-            answer = generate_answer(query, context)
+        # Retrieved context se final answer generate karo.
+        answer = generate_answer(query, context)
 
-        # Answer generation fail hua to graceful message
-        except Exception as exc:
-            answer = f"Answer generation failed: {exc}"
-
-        # Final answer print
+        # Answer heading print karo.
         print("\nAnswer:")
+        # Actual generated answer print karo.
         print(answer)
 
-# Script direct run hone par main() execute karo
+
 if __name__ == "__main__":
+    # Script direct chal rahi hai to main function run karo.
     main()
 
-# -----------------------------------------------------------------------------
-# FULL FLOW (END OF PAGE)
-# -----------------------------------------------------------------------------
-# 1) User URL input
-# 2) URL validation (http/https)
-# 3) Web page load via WebBaseLoader
-# 4) Text chunking (RecursiveCharacterTextSplitter)
-# 5) Embeddings create (text-embedding-3-small)
-# 6) In-memory vector store build (text + vector)
-# 7) User query normalize
-# 8) Hybrid retrieval:
-#    - Semantic similarity (cosine)
-#    - Keyword overlap score
-#    - Weighted rank (0.75 semantic + 0.25 keyword)
-# 9) Top-k context chunks pick
-# 10) LLM answer generation (gpt-4o-mini)
-# 11) Final answer print
+
+# FLOW DIAGRAM (HIGH-LEVEL)
+# [Start]
+#    |
+#    v
+# [Load .env + set USER_AGENT]
+#    |
+#    v
+# [Input URL] --> [Validate URL]
+#                    | valid? no --> [Print Invalid URL + Exit]
+#                    v yes
+#               [Load Website Docs]
+#                    |
+#                    v
+#               [Split into Chunks]
+#                    | empty? yes --> [Print No content + Exit]
+#                    v no
+#               [Create Qdrant Store]
+#                    | fail + fallback false --> [Raise Error + Exit]
+#                    | fail + fallback true  --> [Use In-Memory Store]
+#                    v
+#               [Ask Query Loop]
+#                    |
+#                    v
+#               [Retrieve Top-k Chunks]
+#                    |
+#                    v
+#               [Generate Answer via LLM]
+#                    |
+#                    v
+#               [Print Answer]
+#                    |
+#                    v
+#               [exit? yes -> End | no -> Ask next query]
