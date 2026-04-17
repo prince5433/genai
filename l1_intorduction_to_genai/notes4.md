@@ -1,956 +1,486 @@
-# 🧠 Complete AI / LLM Notes — Hinglish
-> Diagram se banaye gaye complete detailed notes  
-> **Topics:** Fine Tuning • RAG • Agents • LangChain • LangGraph • MCP • Agentic AI
+# Fine Tuning Notes - Theory Only
+
+> Class focus: Fine tuning of pre-trained LLMs  
+> Style: Hinglish, revision-friendly, no code snippets
 
 ---
 
-## 📌 Table of Contents
-1. [Fine Tuning — Broad Use Cases](#1-fine-tuning--broad-use-cases)
-2. [Pre-trained Models](#2-pre-trained-models)
-3. [Few-Shot Learning](#3-few-shot-learning)
-4. [RAG — Retrieval Augmented Generation](#4-rag--retrieval-augmented-generation)
-5. [Embeddings & Vector DB](#5-embeddings--vector-db)
-6. [Agents](#6-agents)
-7. [LangChain](#7-langchain)
-8. [LangGraph](#8-langgraph)
-9. [MCP — Model Context Protocol](#9-mcp--model-context-protocol)
-10. [Agentic AI / Multi-Agent System](#10-agentic-ai--multi-agent-system)
-11. [Code Execution Agent](#11-code-execution-agent)
-12. [Tool Use / Function Calling](#12-tool-use--function-calling)
-13. [Memory in Agents](#13-memory-in-agents)
-14. [Full Architecture Summary](#14-full-architecture-summary)
+## 1. Fine Tuning Kya Hai?
+
+Fine tuning ka matlab hai ek already trained model ko apne specific data ya task ke liye further train karna.
+
+Pre-trained model general knowledge already seekh chuka hota hai. Fine tuning us model ko kisi particular domain, tone, format, ya behavior ke liye specialize karta hai.
+
+Example:
+
+| General Model | Fine-tuned Model |
+| --- | --- |
+| General questions answer kar sakta hai | Company-specific customer support answer de sakta hai |
+| Normal English/Hindi generate karta hai | Brand tone mein response de sakta hai |
+| Generic coding help deta hai | Company code style follow kar sakta hai |
+
+Simple analogy: pre-trained model ek general doctor jaisa hai, fine tuning usse cardiologist, lawyer, support agent, ya coding assistant jaisa specialist bana deti hai.
 
 ---
 
-## 1. Fine Tuning — Broad Use Cases
+## 2. Fine Tuning Ki Zarurat Kab Padti Hai?
 
-### Fine Tuning Kya Hai?
-- **Pre-trained model** ko apne specific data pe aur zyada train karna
-- Jaise ek general doctor ko specialist banana (cardiologist)
-- Base model pehle se bahut kuch jaanta hai — hum sirf **domain-specific knowledge** add karte hain
+Fine tuning tab useful hoti hai jab model ko sirf information nahi, balki behavior ya pattern sikhana ho.
 
-### Broad Use Cases:
-| Use Case | Example |
-|----------|---------|
-| Customer Support | Company-specific Q&A bot |
-| Medical | Disease diagnosis assistant |
-| Legal | Contract review AI |
-| Code | Company codebase pe trained copilot |
-| Finance | Earnings report analyzer |
+Use cases:
 
-### Fine Tuning ke Types:
+| Use Case | Fine Tuning Ka Role |
+| --- | --- |
+| Customer support | Company ke response style aur policies ke according answer dena |
+| Legal | Contract language, clause style, legal tone samajhna |
+| Medical | Medical report style ya domain terminology follow karna |
+| Finance | Financial summaries aur risk language ka pattern seekhna |
+| Coding | Internal code conventions, naming style, review style follow karna |
+| Education | Teacher-like explanation style, level-based answers |
 
-**1. Full Fine Tuning**
-- Poore model ke weights update hote hain
-- Bahut expensive — GPU + time lagta hai
-- Best results milte hain
+Fine tuning especially tab helpful hai jab:
 
-**2. PEFT (Parameter Efficient Fine Tuning)**
-- Sirf kuch layers train karte hain
-- Kam resources chahiye
-- Popular method: **LoRA (Low-Rank Adaptation)**
-
-**3. LoRA — Low Rank Adaptation**
-```
-Original Weights (freeze)
-        +
-Small Adapter Matrices (train karo)
-        =
-Fine-tuned Behavior
-```
-- Sirf adapter train hota hai → 90% less compute
-- Most popular fine tuning method aajkal
-
-**4. RLHF — Reinforcement Learning from Human Feedback**
-- Human raters model ke outputs ko rate karte hain
-- Model seekhta hai ki kya "good" response hai
-- OpenAI ne ChatGPT banane mein ye use kiya
-
-### Fine Tuning vs Prompting:
-```
-Prompting → Instructions dete ho (no training)
-Fine Tuning → Model ko actually sikhate ho
-```
-- Pehle always prompting try karo
-- Agar prompting se kaam na chale → tab fine tuning
+- Same type ka task baar-baar karna ho
+- Output ka format fixed chahiye
+- Model ko specific tone follow karni ho
+- Prompt bahut lamba ya complicated ho raha ho
+- Few-shot prompting se consistent results nahi aa rahe
+- Domain-specific examples ka pattern model ko sikhana ho
 
 ---
 
-## 2. Pre-trained Models
+## 3. Fine Tuning Vs Prompting Vs RAG
 
-### Kya Hota Hai?
-- Internet ka data use karke already trained model
-- Billions of parameters
-- Hum inhe **directly use** kar sakte hain ya **fine-tune** kar sakte hain
+Fine tuning, prompting, aur RAG teen alag techniques hain. Inka purpose same nahi hota.
 
-### Popular Pre-trained Models:
-```
-OpenAI:      GPT-4, GPT-4o, GPT-3.5
-Google:      Gemini Pro, Gemini Flash
-Meta:        LLaMA 3, LLaMA 3.1
-Mistral:     Mistral 7B, Mixtral
-DeepSeek:    DeepSeek-R1, DeepSeek-V3
-Anthropic:   Claude 3.5, Claude Opus
-Microsoft:   Phi-3, Phi-4
-```
+| Technique | Kya Karta Hai | Best For |
+| --- | --- | --- |
+| Prompting | Model ko instruction deta hai | Quick tasks, formatting, simple behavior |
+| Few-shot prompting | Prompt mein examples dekar task samjhata hai | Small pattern learning without training |
+| RAG | External documents se relevant info retrieve karta hai | Fresh/private knowledge, document Q&A |
+| Fine tuning | Model ke behavior ko training se adapt karta hai | Consistent style, format, domain behavior |
 
-### Model Size Matters:
-| Size | Parameters | Best For |
-|------|-----------|---------|
-| Small | 1B-7B | Edge devices, fast inference |
-| Medium | 13B-30B | Balance of speed & quality |
-| Large | 70B+ | Best quality, needs big GPU |
+Important point:
 
-### Hugging Face — Model Hub:
-- Sabse bada **open source model repository**
-- Hazaron pre-trained models free mein available
-- `transformers` library se directly use karo
+- Agar model ko latest ya private facts chahiye, usually RAG better hai.
+- Agar model ko bolne ka tareeka, output structure, classification pattern, ya domain behavior sikhana hai, fine tuning better hai.
+- Fine tuning model ke andar new facts reliably store karne ka best method nahi hai. Factual knowledge ke liye RAG safer hota hai.
 
-```python
-from transformers import pipeline
+Recommended order:
 
-# Ek line mein model load karo
-classifier = pipeline("sentiment-analysis")
-result = classifier("Main bahut khush hoon!")
-print(result)  # [{'label': 'POSITIVE', 'score': 0.99}]
-```
+1. Pehle prompt engineering try karo
+2. Phir few-shot examples try karo
+3. Agar knowledge documents se answer chahiye, RAG use karo
+4. Agar behavior consistent nahi hai, tab fine tuning consider karo
 
 ---
 
-## 3. Few-Shot Learning
+## 4. Pre-trained Models
 
-### Kya Hota Hai?
-- LLM ko **examples dekar** task sikhana — bina training ke
-- Prompt ke andar hi examples dete hain
+Pre-trained model wo model hota hai jo pehle se large-scale internet, books, code, ya mixed data par train ho chuka hota hai.
 
-### Types:
-**Zero-Shot:** Koi example nahi
-```
-Prompt: "Is sentence ka sentiment kya hai: 'Mujhe pizza pasand hai'"
-```
+Fine tuning usually kisi pre-trained base model ya instruction-tuned model par ki jaati hai.
 
-**One-Shot:** Ek example
-```
-Prompt: 
-Example: "Mujhe cricket pasand hai" → Positive
-Ab batao: "Aaj bahut bura din tha" → ?
-```
+Common model families:
 
-**Few-Shot:** Multiple examples
-```
-Prompt:
-"Mujhe cricket pasand hai" → Positive
-"Aaj bahut bura din tha" → Negative  
-"Movie average thi" → Neutral
-Ab batao: "Khana sach mein zabardast tha" → ?
-```
+| Provider / Family | Examples |
+| --- | --- |
+| OpenAI | GPT series |
+| Google | Gemini models |
+| Meta | Llama models |
+| Mistral | Mistral / Mixtral models |
+| Anthropic | Claude models |
+| Microsoft | Phi models |
+| DeepSeek | DeepSeek models |
 
-### Chain-of-Thought (CoT) Prompting:
-- Model ko step-by-step sochne dena
-- Complex problems ke liye better results
+Model choose karte waqt ye factors dekho:
 
-```
-Prompt: "Ek dukan mein 5 apples hain. 3 bik gaye. Phir 4 aur aaye. 
-Kitne hain? Step by step socho."
+- Model size
+- Cost
+- Latency
+- License
+- Context window
+- Fine tuning support
+- Target language support
+- Deployment option: cloud ya local
 
-Response:
-Step 1: Start = 5 apples
-Step 2: 3 bik gaye → 5-3 = 2
-Step 3: 4 aur aaye → 2+4 = 6
-Answer: 6 apples
-```
+Model size intuition:
+
+| Size | Pros | Cons |
+| --- | --- | --- |
+| Small models | Fast, cheap, local run possible | Complex reasoning weak ho sakti hai |
+| Medium models | Balance of cost and quality | Some tasks mein large model se weak |
+| Large models | Better quality and reasoning | Expensive, slow, high GPU requirement |
 
 ---
 
-## 4. RAG — Retrieval Augmented Generation
+## 5. Fine Tuning Ke Types
 
-### RAG Kya Hai?
-> **RAG = LLM + Apna Knowledge Base**
+### 5.1 Full Fine Tuning
 
-- LLM ki training cutoff hoti hai (purana data)
-- RAG se hum **fresh/private data** LLM ko dete hain
-- Without RAG: LLM sirf training data se answer deta hai
-- With RAG: LLM **pehle search karta hai**, phir answer deta hai
+Full fine tuning mein model ke saare ya most parameters update hote hain.
 
-### RAG kab use karein?
-- Company ke internal documents pe Q&A
-- Latest news ya current events
-- Private/confidential data jo training mein nahi tha
-- Long documents (books, PDFs, research papers)
+Pros:
 
-### RAG Architecture:
+- Strong adaptation possible
+- Domain behavior deeply learn ho sakta hai
+- Best result mil sakta hai jab data aur compute enough ho
 
-```
-                    ┌─────────────────────┐
-User Question ───→  │   Query Processing  │
-                    └──────────┬──────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   Vector Database   │  ← (documents stored as embeddings)
-                    │  Similarity Search  │
-                    └──────────┬──────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │  Relevant Chunks    │  ← Top-K results retrieve hote hain
-                    │  (Context)          │
-                    └──────────┬──────────┘
-                               │
-                    ┌──────────▼──────────┐
-                    │   LLM              │  ← Question + Context dono jaate hain
-                    │   (Generate)        │
-                    └──────────┬──────────┘
-                               │
-                    Final Answer ◄────────┘
-```
+Cons:
 
-### RAG Pipeline Steps:
+- Expensive
+- High GPU memory required
+- Training slow hoti hai
+- Overfitting ka risk zyada hota hai
+- Large model ke liye practical nahi hota unless strong infra ho
 
-**Step 1 — Ingestion (Data Load karo)**
-```python
-# Documents load karo
-from langchain.document_loaders import PyPDFLoader
-loader = PyPDFLoader("company_docs.pdf")
-documents = loader.load()
-```
+### 5.2 PEFT - Parameter Efficient Fine Tuning
 
-**Step 2 — Chunking (Documents toro)**
-```python
-# Bade documents ko chunks mein toro
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=500,      # Har chunk 500 characters
-    chunk_overlap=50     # Overlap for context continuity
-)
-chunks = splitter.split_documents(documents)
-```
+PEFT ka matlab hai model ke saare parameters train nahi karne. Sirf small extra parameters ya selected parts train karna.
 
-**Step 3 — Embedding (Numbers mein convert karo)**
-```python
-from langchain.embeddings import OpenAIEmbeddings
-embeddings = OpenAIEmbeddings()
-# Har chunk ko vector (numbers) mein convert karo
-```
+Pros:
 
-**Step 4 — Vector Store (Save karo)**
-```python
-from langchain.vectorstores import FAISS, Chroma, Pinecone
+- Kam compute
+- Kam memory
+- Faster training
+- Multiple tasks ke liye separate adapters bana sakte hain
+- Base model mostly unchanged rehta hai
 
-# FAISS — local, free
-vectorstore = FAISS.from_documents(chunks, embeddings)
-vectorstore.save_local("my_index")
-```
+Common PEFT methods:
 
-**Step 5 — Retrieval + Generation**
-```python
-# Query aai → similar chunks dhundo → LLM ko do
-retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
-chain = RetrievalQA.from_chain_type(llm=llm, retriever=retriever)
-answer = chain.run("Company ki refund policy kya hai?")
-```
+| Method | Idea |
+| --- | --- |
+| LoRA | Small trainable adapter matrices add karna |
+| QLoRA | Quantized model par LoRA training karna |
+| Prefix tuning | Input ke saath trainable prefix add karna |
+| Prompt tuning | Soft prompts train karna |
 
-### Popular Vector Databases:
-| DB | Type | Best For |
-|----|------|---------|
-| FAISS | Local | Prototype, small data |
-| Chroma | Local/Server | Development |
-| Pinecone | Cloud | Production |
-| Weaviate | Cloud/Self-hosted | Enterprise |
-| Qdrant | Cloud/Local | Performance |
+### 5.3 LoRA
 
----
+LoRA ka full form hai Low-Rank Adaptation.
 
-## 5. Embeddings & Vector DB
+LoRA mein original model weights freeze rehte hain. Training ke dauran small adapter weights learn hote hain. In adapters ki wajah se model ka behavior task ke according change hota hai.
 
-### Embedding Kya Hai?
-- Text ko **numbers ki list (vector)** mein convert karna
-- Similar meanings → Similar vectors
-- LLM "meaning" ko numbers mein encode karta hai
+Why LoRA popular hai:
 
-```
-"cat"  → [0.2, 0.8, 0.1, 0.9, ...]  (1536 numbers)
-"dog"  → [0.2, 0.7, 0.2, 0.8, ...]  (similar!)
-"car"  → [0.9, 0.1, 0.7, 0.2, ...]  (different)
-```
+- Full fine tuning se much cheaper
+- GPU memory kam lagti hai
+- Training fast hoti hai
+- Adapter files small hote hain
+- Same base model ke saath multiple adapters use kar sakte hain
 
-### Cosine Similarity:
-- Do vectors kitne "paas" hain → similarity
-- 1.0 = identical, 0.0 = completely different
+LoRA ka main idea: poora model badalne ke bajay uske behavior ko small trainable modules ke through guide karna.
 
-```python
-from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
+### 5.4 QLoRA
 
-v1 = model.encode("cat")
-v2 = model.encode("dog")
-v3 = model.encode("car")
+QLoRA LoRA ka efficient version hai jahan base model quantized form mein load hota hai.
 
-print(cosine_similarity([v1], [v2]))  # 0.89 (similar!)
-print(cosine_similarity([v1], [v3]))  # 0.21 (different)
-```
+Quantization ka matlab weights ko lower precision mein store karna, jisse memory usage kam hota hai.
 
-### Popular Embedding Models:
-```
-OpenAI:     text-embedding-3-small, text-embedding-ada-002
-Google:     text-embedding-004
-HuggingFace: sentence-transformers/all-MiniLM-L6-v2 (FREE)
-Cohere:     embed-english-v3.0
-```
+QLoRA useful hai jab:
+
+- GPU memory limited ho
+- Large model fine-tune karna ho
+- Cost kam rakhni ho
+
+### 5.5 Instruction Fine Tuning
+
+Instruction fine tuning mein model ko instruction-response examples par train kiya jata hai.
+
+Goal: model user instruction samjhe aur useful response generate kare.
+
+Example type:
+
+| Input | Output |
+| --- | --- |
+| Explain this topic simply | Simple explanation |
+| Summarize this paragraph | Short summary |
+| Convert this into bullet points | Structured answer |
+
+Ye technique models ko chatbot-like behavior dene mein important hai.
+
+### 5.6 Supervised Fine Tuning
+
+Supervised fine tuning mein har training example ke saath expected answer diya hota hai.
+
+Model input dekhkar target output imitate karna seekhta hai.
+
+Use cases:
+
+- Classification
+- Summarization
+- Q&A
+- Style transfer
+- Structured output generation
+- Domain-specific assistant behavior
+
+### 5.7 RLHF
+
+RLHF ka full form hai Reinforcement Learning from Human Feedback.
+
+RLHF mein humans model ke multiple outputs ko compare/rate karte hain. Model learn karta hai ki kaunsa answer more helpful, safe, and preferred hai.
+
+High-level flow:
+
+1. Model multiple responses generate karta hai
+2. Humans responses ko rank karte hain
+3. Reward model train hota hai
+4. Main model reward ke according improve hota hai
+
+RLHF mainly alignment ke liye use hota hai:
+
+- Helpful answers
+- Safe behavior
+- Better conversational quality
+- Human preference ke closer output
 
 ---
 
-## 6. Agents
+## 6. Fine Tuning Dataset
 
-### Agent Kya Hai?
-> **Agent = LLM + Tools + Memory + Planning**
+Fine tuning ka result mostly dataset quality par depend karta hai.
 
-- Sirf answer nahi deta — **actions leta hai**
-- Goals ke basis pe khud decide karta hai kya karna hai
-- Loop mein kaam karta hai jab tak goal complete na ho
+Good dataset ke qualities:
 
-### Agent Loop (ReAct Pattern):
-```
-┌─────────────────────────────────────────┐
-│              AGENT LOOP                 │
-│                                         │
-│  1. Thought → "Mujhe weather check     │
-│                karna chahiye"           │
-│  2. Action  → weather_tool("Delhi")    │
-│  3. Observation → "28°C, Sunny"        │
-│  4. Thought → "Ab answer de sakta hoon"│
-│  5. Final Answer → User ko bata do     │
-└─────────────────────────────────────────┘
-```
+- Relevant examples
+- Clean text
+- Correct labels or outputs
+- Consistent style
+- Balanced distribution
+- Duplicate data kam
+- Sensitive/private data remove
+- Clear task format
 
-### Agent ke Components:
-```
-┌──────────────────────────────────┐
-│           AGENT                  │
-│                                  │
-│  ┌─────────┐  ┌───────────────┐ │
-│  │   LLM   │  │    Tools      │ │
-│  │ (Brain) │  │ - Web Search  │ │
-│  └────┬────┘  │ - Calculator  │ │
-│       │       │ - Code Runner │ │
-│  ┌────▼────┐  │ - DB Query    │ │
-│  │ Memory  │  │ - Email Send  │ │
-│  │ (Past)  │  └───────────────┘ │
-│  └─────────┘                    │
-└──────────────────────────────────┘
-```
+Bad dataset ke problems:
 
-### Types of Agents:
+- Wrong answers model ko galat behavior sikha denge
+- Inconsistent format se model confuse hoga
+- Biased data se biased output aayega
+- Too little data se overfitting ho sakta hai
+- Noisy data se quality degrade ho sakti hai
 
-**1. ReAct Agent (Reason + Act)**
-- Sochta hai → Action karta hai → Observe karta hai
-- Most common type
+Common dataset types:
 
-**2. Plan-and-Execute Agent**
-- Pehle poora plan banata hai
-- Phir step by step execute karta hai
-- Complex tasks ke liye
+| Dataset Type | Use Case |
+| --- | --- |
+| Instruction-response | Chatbots, assistants, Q&A |
+| Input-output pairs | Translation, summarization, rewriting |
+| Labeled examples | Classification, sentiment, intent detection |
+| Conversations | Multi-turn assistant behavior |
+| Preference data | RLHF / ranking-based training |
 
-**3. Self-Reflective Agent**
-- Apne outputs ko evaluate karta hai
-- Galti ho to khud correct karta hai
+Dataset split:
+
+| Split | Purpose |
+| --- | --- |
+| Training set | Model isse learn karta hai |
+| Validation set | Training ke during quality check hoti hai |
+| Test set | Final unbiased evaluation hoti hai |
 
 ---
 
-## 7. LangChain
+## 7. Fine Tuning Training Flow
 
-### LangChain Kya Hai?
-- LLM applications banane ka **popular framework**
-- Chains, Agents, RAG — sab ek jagah
-- Python aur JavaScript dono mein available
+Typical fine tuning process:
 
-### Install:
-```bash
-pip install langchain langchain-openai langchain-community
-```
+1. Goal define karo
+2. Base model choose karo
+3. Dataset collect karo
+4. Data clean and format karo
+5. Training/validation/test split banao
+6. Fine tuning method choose karo: full fine tuning, LoRA, QLoRA, etc.
+7. Training run karo
+8. Evaluation karo
+9. Errors analyze karo
+10. Dataset improve karo
+11. Model deploy karo
+12. Monitoring and feedback loop maintain karo
 
-### Core Concepts:
-
-**1. LLM / ChatModel**
-```python
-from langchain_openai import ChatOpenAI
-
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
-response = llm.invoke("Python kya hai?")
-print(response.content)
-```
-
-**2. Prompt Templates**
-```python
-from langchain.prompts import ChatPromptTemplate
-
-template = ChatPromptTemplate.from_messages([
-    ("system", "Tum ek helpful {language} teacher ho"),
-    ("human", "{topic} samjhao")
-])
-
-chain = template | llm
-result = chain.invoke({"language": "Python", "topic": "loops"})
-```
-
-**3. Chains (LCEL — LangChain Expression Language)**
-```python
-# Pipe operator se chain banao
-chain = prompt | llm | output_parser
-
-# Invoke karo
-result = chain.invoke({"input": "Hello"})
-```
-
-**4. Memory**
-```python
-from langchain.memory import ConversationBufferMemory
-
-memory = ConversationBufferMemory()
-# Previous conversation yaad rakhta hai
-```
-
-**5. Tools & Agents**
-```python
-from langchain.agents import create_react_agent, AgentExecutor
-from langchain.tools import tool
-
-@tool
-def get_weather(city: str) -> str:
-    """Get weather for a city"""
-    return f"{city} mein 28°C aur sunny hai"
-
-agent = create_react_agent(llm, tools=[get_weather], prompt=prompt)
-executor = AgentExecutor(agent=agent, tools=[get_weather])
-result = executor.invoke({"input": "Delhi ka weather kya hai?"})
-```
-
-### LangChain Architecture:
-```
-Input
-  ↓
-Prompt Template
-  ↓
-LLM (OpenAI / Ollama / etc.)
-  ↓
-Output Parser
-  ↓
-Final Output
-```
+Fine tuning iterative process hai. Usually first run perfect nahi hota.
 
 ---
 
-## 8. LangGraph
+## 8. Important Training Concepts
 
-### LangGraph Kya Hai?
-- LangChain ka extension
-- **Graph-based** agent workflows
-- Complex, multi-step, **stateful** applications ke liye
-- Nodes aur Edges se workflow define karo
+### Epoch
 
-### LangChain vs LangGraph:
-| | LangChain | LangGraph |
-|--|-----------|-----------|
-| Structure | Linear chains | Graph (nodes + edges) |
-| State | Limited | Full state management |
-| Loops | Difficult | Easy |
-| Complexity | Medium | High (but powerful) |
-| Use case | Simple pipelines | Complex agents |
+Ek epoch ka matlab model ne full training dataset ek baar dekh liya.
 
-### LangGraph Concepts:
+Too few epochs: model enough learn nahi karega.  
+Too many epochs: model overfit kar sakta hai.
 
-**State** — Shared data jo nodes ke beech pass hoti hai
-```python
-from typing import TypedDict, Annotated
-from langgraph.graph import StateGraph, END
+### Batch Size
 
-class AgentState(TypedDict):
-    messages: list
-    next_action: str
-    result: str
-```
+Batch size batata hai ek training step mein kitne examples process honge.
 
-**Nodes** — Functions jo kaam karte hain
-```python
-def research_node(state: AgentState) -> AgentState:
-    # Web search karo
-    query = state["messages"][-1]
-    results = web_search(query)
-    return {"result": results}
+Large batch:
 
-def answer_node(state: AgentState) -> AgentState:
-    # Answer generate karo
-    answer = llm.invoke(state["messages"])
-    return {"messages": [answer]}
-```
+- Training stable ho sakti hai
+- More memory chahiye
 
-**Graph** — Nodes ko connect karo
-```python
-graph = StateGraph(AgentState)
+Small batch:
 
-# Nodes add karo
-graph.add_node("research", research_node)
-graph.add_node("answer", answer_node)
+- Memory kam chahiye
+- Training noisy ho sakti hai
 
-# Edges add karo (flow define karo)
-graph.set_entry_point("research")
-graph.add_edge("research", "answer")
-graph.add_edge("answer", END)
+### Learning Rate
 
-# Compile karo
-app = graph.compile()
-result = app.invoke({"messages": ["AI kya hai?"]})
-```
+Learning rate decide karta hai model weights kitni speed se update honge.
 
-### Conditional Edges (Decision Making):
-```python
-def should_continue(state):
-    if state["result"] == "needs_more_research":
-        return "research"  # Loop back
-    else:
-        return "answer"   # Aage badho
+High learning rate:
 
-graph.add_conditional_edges(
-    "research",
-    should_continue,
-    {"research": "research", "answer": "answer"}
-)
-```
+- Fast learning
+- Instability ka risk
 
-### LangGraph Use Cases:
-- **Customer support bot** — Multiple departments route karo
-- **Research agent** — Search → Analyze → Summarize loop
-- **Code review agent** — Write → Test → Fix loop
-- **Multi-agent systems** — Alag-alag agents coordinate karein
+Low learning rate:
+
+- Stable learning
+- Slow training
+
+### Overfitting
+
+Overfitting tab hota hai jab model training data ko memorize kar leta hai but new examples par weak perform karta hai.
+
+Signs:
+
+- Training loss low
+- Validation performance weak
+- Model same type ke answers repeat karta hai
+- New cases par generalize nahi karta
+
+Avoid karne ke ways:
+
+- More diverse data
+- Validation monitoring
+- Fewer epochs
+- Regularization
+- Early stopping
+- Better dataset cleaning
+
+### Catastrophic Forgetting
+
+Catastrophic forgetting tab hota hai jab fine tuning ke baad model apni general ability lose karne lagta hai.
+
+Example: model legal data par fine-tune hua, but normal conversation mein weak ho gaya.
+
+Avoid karne ke ways:
+
+- PEFT/LoRA use karo
+- Learning rate low rakho
+- Mixed/general data include karo
+- Evaluation broad rakho
 
 ---
 
-## 9. MCP — Model Context Protocol
+## 9. Evaluation
 
-### MCP Kya Hai?
-> **MCP = Standard way to connect LLMs to external tools/data**
+Fine-tuned model ko sirf training loss se judge nahi karna chahiye. Real task performance evaluate karna important hai.
 
-- Anthropic ne banaya (Claude ke creators)
-- LLM aur tools ke beech **universal protocol**
-- USB-C jaiso sochho — ek standard connector sab ke liye
+Evaluation dimensions:
 
-### MCP Architecture:
-```
-┌─────────────────┐     MCP Protocol     ┌──────────────────┐
-│   MCP Client    │ ◄──────────────────► │   MCP Server     │
-│  (AI App/LLM)  │                       │  (Tool Provider) │
-└─────────────────┘                       └──────────────────┘
-                                                   │
-                                        ┌──────────▼──────────┐
-                                        │ - File System       │
-                                        │ - Database          │
-                                        │ - Web APIs          │
-                                        │ - Custom Tools      │
-                                        └─────────────────────┘
-```
+| Dimension | Meaning |
+| --- | --- |
+| Accuracy | Correct answer de raha hai ya nahi |
+| Format consistency | Required structure follow kar raha hai ya nahi |
+| Tone | Desired communication style match kar raha hai ya nahi |
+| Factuality | Hallucination kam hai ya nahi |
+| Safety | Harmful ya private info leak nahi kar raha |
+| Generalization | New examples par bhi perform kar raha hai |
 
-### MCP ke Components:
+Evaluation methods:
 
-**1. Resources** — Data jo LLM read kar sake
-```
-Files, databases, API responses
-```
+- Holdout test set
+- Human review
+- Side-by-side comparison with base model
+- Task-specific metrics
+- LLM-as-a-judge, with human spot-checking
+- Production feedback
 
-**2. Tools** — Functions jo LLM call kar sake
-```
-search(), create_file(), send_email()
-```
-
-**3. Prompts** — Reusable prompt templates
-```
-Pre-defined workflows
-```
-
-### MCP vs Direct API:
-```
-Without MCP:
-LLM → Custom code → Tool A
-LLM → Custom code → Tool B
-LLM → Custom code → Tool C
-(Har tool ke liye alag code)
-
-With MCP:
-LLM → MCP Protocol → Tool A
-                   → Tool B  
-                   → Tool C
-(Ek standard, sab tools)
-```
-
-### Popular MCP Servers:
-- `filesystem` — Local files access
-- `github` — GitHub repos manage karo
-- `postgres` — Database queries
-- `brave-search` — Web search
-- `slack` — Slack messages
-- `google-drive` — Google Drive files
-
-### MCP Setup (Claude Desktop):
-```json
-// claude_desktop_config.json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
-    },
-    "github": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-github"],
-      "env": {"GITHUB_TOKEN": "your_token"}
-    }
-  }
-}
-```
+Important: LLM-as-a-judge useful hai, but blindly trust nahi karna chahiye. Human evaluation bhi important hai, especially high-stakes tasks mein.
 
 ---
 
-## 10. Agentic AI / Multi-Agent System
+## 10. Deployment Considerations
 
-### Agentic AI Kya Hai?
-- **Multiple AI agents** milke ek bade goal pe kaam karte hain
-- Har agent ka ek specific role hota hai
-- Agents ek dusre se communicate karte hain
+Fine-tuned model ko deploy karte waqt sirf accuracy nahi, cost and safety bhi dekhni hoti hai.
 
-### Multi-Agent Architecture:
-```
-         ┌─────────────────────┐
-         │   Orchestrator      │  ← Boss agent — tasks distribute karta hai
-         │   (Manager Agent)   │
-         └──────────┬──────────┘
-                    │
-        ┌───────────┼───────────┐
-        │           │           │
-┌───────▼───┐ ┌─────▼─────┐ ┌──▼────────┐
-│ Research  │ │  Writer   │ │  Critic   │
-│  Agent    │ │  Agent    │ │  Agent    │
-└───────────┘ └───────────┘ └───────────┘
-  Web Search   Content Gen   Review & Fix
-```
+Things to consider:
 
-### Real World Example — Blog Writing System:
-```
-User: "Python tutorial likhna hai"
-         ↓
-Orchestrator Agent
-         ↓
-    ┌────┴────┐
-    │         │
-Research    Outline
-  Agent      Agent
-(facts dhundo) (structure banao)
-    │         │
-    └────┬────┘
-         ↓
-    Writer Agent
-    (Content likho)
-         ↓
-    Editor Agent
-    (Proofread karo)
-         ↓
-   Final Blog Post ✅
-```
+- Inference cost
+- Latency
+- Model hosting
+- Data privacy
+- Versioning
+- Rollback plan
+- Monitoring
+- User feedback
+- Guardrails
+- Bias and safety checks
 
-### Agent Communication Patterns:
+Production mein monitor karo:
 
-**1. Sequential (Line mein)**
-```
-Agent A → Agent B → Agent C → Result
-```
-
-**2. Parallel (Saath mein)**
-```
-Agent A ─┐
-Agent B ─┼─→ Aggregator → Result
-Agent C ─┘
-```
-
-**3. Hierarchical (Manager-Worker)**
-```
-Manager
-├── Worker 1
-├── Worker 2
-└── Worker 3
-```
-
-### AutoGen — Microsoft ka Multi-Agent Framework:
-```python
-import autogen
-
-# Agents define karo
-assistant = autogen.AssistantAgent("assistant", llm_config=llm_config)
-user_proxy = autogen.UserProxyAgent("user_proxy", code_execution_config={"work_dir": "."})
-
-# Conversation start karo
-user_proxy.initiate_chat(
-    assistant,
-    message="Python mein bubble sort likhna aur test karo"
-)
-```
+- Wrong outputs
+- Hallucinations
+- User complaints
+- Drift in input data
+- Cost spikes
+- Latency issues
 
 ---
 
-## 11. Code Execution Agent
+## 11. Common Mistakes
 
-### Kya Karta Hai?
-- Code **khud likhta hai**
-- Code **khud run karta hai**
-- Output dekh ke **khud fix karta hai**
-
-### Flow:
-```
-Problem Statement
-       ↓
-LLM → Code Generate karo
-       ↓
-Code Execute karo (sandbox mein)
-       ↓
-Error aaya? → Fix karo → Re-run karo
-       ↓
-Success → Result do
-```
-
-### Code Execution Setup:
-```python
-from langchain.agents import create_python_agent
-from langchain.tools import PythonREPLTool
-
-# Python REPL tool — code run kar sakta hai
-python_tool = PythonREPLTool()
-
-agent = create_python_agent(
-    llm=llm,
-    tool=python_tool,
-    verbose=True
-)
-
-result = agent.run("""
-1 se 100 tak ke prime numbers nikalo 
-aur unka sum batao
-""")
-```
-
-### Sandbox Safety:
-- Code execution **isolated environment** mein hona chahiye
-- Docker containers use karo production mein
-- Never directly system pe run karo untrusted code
+| Mistake | Problem |
+| --- | --- |
+| Fine tuning when prompting was enough | Extra cost and complexity |
+| Fine tuning for latest facts | Facts outdated ho sakte hain; RAG better |
+| Poor dataset quality | Model poor behavior learn karega |
+| Too much training | Overfitting |
+| No validation set | Real performance pata nahi chalegi |
+| No baseline comparison | Improvement measure nahi hoga |
+| Ignoring safety/privacy | Sensitive data leak risk |
+| Only training loss dekhna | User-facing quality miss ho sakti hai |
 
 ---
 
-## 12. Tool Use / Function Calling
+## 12. Quick Revision
 
-### Kya Hai?
-- LLM directly external functions call kar sakta hai
-- OpenAI, Anthropic — sab support karte hain
-- JSON format mein tool define karo
-
-### OpenAI Function Calling:
-```python
-import openai
-import json
-
-# Tools define karo
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_weather",
-            "description": "Kisi bhi city ka weather batao",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "city": {
-                        "type": "string",
-                        "description": "City name"
-                    }
-                },
-                "required": ["city"]
-            }
-        }
-    }
-]
-
-# LLM call karo tools ke saath
-response = openai.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Delhi ka weather kya hai?"}],
-    tools=tools,
-    tool_choice="auto"  # LLM decide kare kab tool use karna hai
-)
-
-# LLM ne tool call kiya?
-if response.choices[0].message.tool_calls:
-    tool_call = response.choices[0].message.tool_calls[0]
-    city = json.loads(tool_call.function.arguments)["city"]
-    
-    # Actual function call karo
-    weather = get_weather(city)  # "28°C, Sunny"
-    
-    # Result wapas LLM ko do
-    final_response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[
-            {"role": "user", "content": "Delhi ka weather kya hai?"},
-            response.choices[0].message,
-            {"role": "tool", "content": weather, "tool_call_id": tool_call.id}
-        ]
-    )
-    print(final_response.choices[0].message.content)
-```
-
-### Common Tools:
-```python
-tools = [
-    web_search_tool,      # Internet search
-    calculator_tool,      # Math calculations
-    file_read_tool,       # Files padhna
-    database_tool,        # DB queries
-    email_tool,           # Email bhejna
-    calendar_tool,        # Calendar manage
-    code_execution_tool,  # Code run karna
-]
-```
+| Concept | One-line Meaning |
+| --- | --- |
+| Fine tuning | Pre-trained model ko specific task/domain/style ke liye train karna |
+| Pre-trained model | Already large data par trained base model |
+| Prompting | Training ke bina instruction dena |
+| Few-shot | Prompt mein examples dekar guide karna |
+| RAG | External knowledge retrieve karke answer generate karna |
+| Full fine tuning | Model ke many/all weights update karna |
+| PEFT | Few parameters train karke efficient adaptation |
+| LoRA | Small adapters train karna instead of full model |
+| QLoRA | Quantized model ke saath LoRA training |
+| SFT | Labeled input-output examples par supervised training |
+| RLHF | Human feedback se model align karna |
+| Epoch | Dataset ka ek full pass |
+| Learning rate | Model update speed |
+| Overfitting | Training data memorize, new data par weak |
+| Catastrophic forgetting | Fine tuning ke baad general ability lose hona |
+| Evaluation | Model quality ko test examples/human review se check karna |
 
 ---
 
-## 13. Memory in Agents
+## 13. Exam / Interview Points
 
-### Types of Memory:
-
-**1. Short-term Memory (Conversation Buffer)**
-- Current conversation yaad rakhta hai
-- Context window ki limit hai
-```python
-from langchain.memory import ConversationBufferMemory
-memory = ConversationBufferMemory()
-```
-
-**2. Long-term Memory (Vector Store)**
-- Past conversations save hoti hain
-- Similarity search se relevant memories retrieve hoti hain
-```python
-from langchain.memory import VectorStoreRetrieverMemory
-memory = VectorStoreRetrieverMemory(retriever=vectorstore.as_retriever())
-```
-
-**3. Episodic Memory**
-- Specific events/episodes yaad rakhna
-- "Last time user ne pizza order kiya tha"
-
-**4. Semantic Memory**
-- Facts aur knowledge store karna
-- User preferences, important information
-
-### Memory Architecture:
-```
-New Message
-     ↓
-┌────┴────────────────────────┐
-│   Working Memory            │  ← Current conversation
-│   (Context Window)          │
-└────┬────────────────────────┘
-     │
-     ↓ (important info save)
-┌────┴────────────────────────┐
-│   Long-term Memory          │  ← Vector DB
-│   (Past experiences)        │
-└─────────────────────────────┘
-     ↑
-     │ (relevant memories retrieve)
-     └── Next conversation mein use
-```
+- Fine tuning model ko new behavior sikhata hai; RAG model ko external knowledge deta hai.
+- Fine tuning tab karo jab output style, task format, ya domain behavior consistent banana ho.
+- LoRA and QLoRA practical fine tuning ke most common efficient methods hain.
+- Dataset quality fine tuning result ka sabse important factor hai.
+- Fine tuning ke baad evaluation zaruri hai because low training loss does not guarantee good real-world answers.
+- Overfitting aur catastrophic forgetting major risks hain.
+- Sensitive data ko training dataset mein include karna dangerous ho sakta hai.
+- Production model ke liye monitoring, feedback, versioning, and rollback plan important hain.
 
 ---
 
-## 14. Full Architecture Summary
+## Extra Notes
 
-### Complete AI Application Stack:
-```
-┌─────────────────────────────────────────────────┐
-│                  USER INTERFACE                  │
-│         (Web App / API / Chat Interface)         │
-└──────────────────────┬──────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────┐
-│              ORCHESTRATION LAYER                 │
-│         LangChain / LangGraph / AutoGen          │
-└──────────────────────┬──────────────────────────┘
-                       │
-         ┌─────────────┼──────────────┐
-         │             │              │
-┌────────▼───┐  ┌──────▼──────┐ ┌───▼──────────┐
-│    LLM     │  │   Memory    │ │    Tools     │
-│ GPT-4 /    │  │ Short-term  │ │ Web Search   │
-│ Claude /   │  │ Long-term   │ │ Calculator   │
-│ LLaMA      │  │ Vector DB   │ │ Code Runner  │
-└────────────┘  └─────────────┘ └──────────────┘
-         │
-┌────────▼───────────────────────────────────────┐
-│                DATA LAYER                       │
-│  RAG Pipeline → Vector DB → Embeddings         │
-│  Documents / PDFs / Databases / APIs            │
-└─────────────────────────────────────────────────┘
-```
+LLM as a judge: LLM ko evaluator ki tarah use karna, jahan wo model outputs ko compare karta hai aur decide karta hai kaunsa output better hai. Fine-tuning evaluation mein useful ho sakta hai, but human spot-checking ke saath use karna better hai.
 
-### Technology Stack Choices:
-| Layer | Options |
-|-------|---------|
-| LLM | OpenAI GPT-4 / Claude / Gemini / LLaMA (Ollama) |
-| Framework | LangChain / LlamaIndex / Haystack |
-| Orchestration | LangGraph / AutoGen / CrewAI |
-| Vector DB | FAISS / Chroma / Pinecone / Weaviate |
-| Embedding | OpenAI / HuggingFace / Cohere |
-| Tools/MCP | Custom Tools / MCP Servers |
-| Memory | ConversationBuffer / Redis / Vector Store |
-| Deployment | FastAPI / Docker / Cloud (AWS/GCP/Azure) |
-
----
-
-## 🚀 Quick Revision — Sab Ek Jagah
-
-| Concept | Ek Line Mein |
-|---------|-------------|
-| Fine Tuning | Pre-trained model ko apne data pe aur train karna |
-| LoRA | Sirf small adapters train karo — efficient fine tuning |
-| RLHF | Human feedback se model ko improve karo |
-| RAG | External knowledge + LLM = Accurate answers |
-| Embeddings | Text → Numbers (meaning encode karo) |
-| Vector DB | Embeddings store karo aur fast search karo |
-| Agent | LLM jo khud actions le sakta hai |
-| ReAct | Think → Act → Observe → Repeat |
-| LangChain | LLM apps banane ka framework |
-| LangGraph | Graph-based complex agent workflows |
-| MCP | Standard protocol LLM aur tools ko connect karne ka |
-| Multi-Agent | Multiple AI agents milke kaam karte hain |
-| Function Calling | LLM external functions call kar sakta hai |
-| Memory | Agent past conversations yaad rakhta hai |
-
----
-
-## 📚 Resources for Further Learning
-
-```
-LangChain Docs:     https://docs.langchain.com
-LangGraph:          https://langchain-ai.github.io/langgraph
-MCP Docs:           https://modelcontextprotocol.io
-OpenAI Docs:        https://platform.openai.com/docs
-HuggingFace:        https://huggingface.co/docs
-Ollama:             https://ollama.ai
-
-YouTube Channels:
-- Andrej Karpathy (Deep LLM understanding)
-- AI Jason (LangChain tutorials)
-- Matt Williams (Ollama)
-```
-
----
-
-> 📝 **Notes created from:** Excalidraw diagram + Image diagram  
-> **Topics covered:** Fine Tuning → RAG → Embeddings → Agents → LangChain → LangGraph → MCP → Multi-Agent → Memory → Full Stack Architecture
-
-## extra notes by me
-llm as a judge: LLM ko ek judge ki tarah use karna, jahan wo alag-alag tools ke outputs ko evaluate karta hai aur decide karta hai ki kaunsa output best hai. Ye approach multi-agent systems mein bahut useful hota hai, jahan multiple agents alag-alag tasks perform karte hain aur LLM unke results ko judge karta hai.
-
-sdk: Software Development Kit, ek set of tools aur libraries jo developers ko specific platform ya framework ke liye applications banane mein madad karta hai. LLMs ke context mein, SDKs developers ko LLM APIs ke saath easily integrate karne ka tarika provide karte hain, jisse wo apne applications mein LLM capabilities add kar sakte hain bina low-level API calls ke.
+SDK: Software Development Kit, yani tools/libraries ka set jo developers ko kisi model provider ya framework ke saath application integrate karne mein help karta hai. Fine tuning ke context mein SDK training jobs, dataset upload, model management, and deployment ko easier bana sakta hai.
