@@ -1,0 +1,1 @@
+This project uses LangGraph for workflow, Mem0 for memory, and JSON knowledge graph for relationships.

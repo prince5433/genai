@@ -1,133 +1,148 @@
-from typing_extensions import TypedDict
-from langgraph.graph import StateGraph, START, END
-from typing import Literal
-from langsmith.wrappers import wrap_openai
-from openai import OpenAI
-from pydantic import BaseModel
+from typing_extensions import TypedDict  # Typed state shape define karne ke liye
+from langgraph.graph import StateGraph, START, END  # Graph builder + start/end nodes
+from typing import Literal  # Return type ko fixed options me rakhne ke liye
+from langsmith.wrappers import wrap_openai  # OpenAI client ko structured output ke liye wrap
+from openai import OpenAI  # OpenAI client
+from pydantic import BaseModel  # Response schema validation
+from dotenv import load_dotenv  # .env loader
 
 
-# Schema
+# Schema: LLM response ko strictly validate karne ke liye
 class DetectCallResponse(BaseModel):
-    is_question_ai: bool
+    is_question_ai: bool  # True/False: kya query coding se related hai
 
 class CodingAIResponse(BaseModel):
-    answer: str
+    answer: str  # Final reply text
 
 
-client = wrap_openai(OpenAI())
+# .env file se API keys load karne ke liye
+load_dotenv()  # Environment variables load
 
-from dotenv import load_dotenv
-
-load_dotenv()
+# OpenAI client ko wrap kiya taaki structured output parse ho sake
+client = wrap_openai(OpenAI())  # Wrapped client instance
 
 class State(TypedDict):
-    user_message: str
-    ai_message: str
-    is_coding_question: bool
+    # Ye state graph me aage-pass hone wala data hai
+    user_message: str  # User ka input
+    ai_message: str  # AI ka output
+    is_coding_question: bool  # Routing flag
 
 def detect_query(state: State):
-    user_message = state.get("user_message")
+    # User message uthao
+    user_message = state.get("user_message")  # Current user query
 
-    SYSTEM_PROMPT = """
+    SYSTEM_PROMPT = """  # System instruction for detection
     You are an AI assistant. Your job is to detect if the user's query is related
     to coding question or not.
     Return the response in specified JSON boolean only.
     """
 
-    # OpenAI Call
+    # OpenAI Call: check karo query coding se related hai ya nahi
     result = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
-        response_format=DetectCallResponse,
+        model="gpt-4o-mini",  # Lightweight model for classification
+        response_format=DetectCallResponse,  # Structured output schema
         messages=[
-            { "role": "system", "content": SYSTEM_PROMPT },
-            { "role": "user", "content": user_message }
+            { "role": "system", "content": SYSTEM_PROMPT },  # System prompt
+            { "role": "user", "content": user_message }  # Actual user query
         ]
     )
 
+    # Parsed response se boolean state me set karo
     state["is_coding_question"] = result.choices[0].message.parsed.is_question_ai
-    return state
+    return state  # Updated state return
 
 def route_edge(state: State) -> Literal["solve_coding_question", "solve_simple_question"]:
-    is_coding_question = state.get("is_coding_question")
+    # Route decide karne ke liye flag uthao
+    is_coding_question = state.get("is_coding_question")  # Boolean flag
 
-    if is_coding_question:
-        return "solve_coding_question"
-    else:
-        return "solve_simple_question"
+    if is_coding_question:  # Agar coding query hai
+        return "solve_coding_question"  # Coding handler par jao
+    else:  # Agar general chat hai
+        return "solve_simple_question"  # Simple handler par jao
 
 def solve_coding_question(state: State):
-    user_message = state.get("user_message")
+    # Coding-type query ka reply generate karo
+    user_message = state.get("user_message")  # User input
 
-    # OpenAI Call (Coding Question gpt-4.1)
-    SYSTEM_PROMPT = """
+    # OpenAI Call (Coding Question gpt-4o-mini)
+    SYSTEM_PROMPT = """  # System instruction for coding help
     You are an AI assistant. Your job is to resolve the user query based on coding 
     problem he is facing
     """
 
     # OpenAI Call
     result = client.beta.chat.completions.parse(
-        model="gpt-4.1",
-        response_format=CodingAIResponse,
+        model="gpt-4o-mini",  # Available model for coding answers
+        response_format=CodingAIResponse,  # Structured output schema
         messages=[
-            { "role": "system", "content": SYSTEM_PROMPT },
-            { "role": "user", "content": user_message }
+            { "role": "system", "content": SYSTEM_PROMPT },  # System prompt
+            { "role": "user", "content": user_message }  # User query
         ]
     )
+    # Answer ko state me save karo
     state["ai_message"] = result.choices[0].message.parsed.answer
 
-    return state
+    return state  # Updated state return
 
 def solve_simple_question(state: State):
-    user_message = state.get("user_message")
+    # Simple chat-type query ka reply generate karo
+    user_message = state.get("user_message")  # User input
 
     # OpenAI Call (Coding Question gpt-mini)
-    SYSTEM_PROMPT = """
+    SYSTEM_PROMPT = """  # System instruction for casual chat
     You are an AI assistant. Your job is to chat with user
     """
 
     # OpenAI Call
     result = client.beta.chat.completions.parse(
-        model="gpt-4o-mini",
-        response_format=CodingAIResponse,
+        model="gpt-4o-mini",  # Fast/cheap model for normal chat
+        response_format=CodingAIResponse,  # Structured output schema
         messages=[
-            { "role": "system", "content": SYSTEM_PROMPT },
-            { "role": "user", "content": user_message }
+            { "role": "system", "content": SYSTEM_PROMPT },  # System prompt
+            { "role": "user", "content": user_message }  # User message
         ]
     )
+    # Answer ko state me save karo
     state["ai_message"] = result.choices[0].message.parsed.answer
 
-    return state
+    return state  # Updated state return
 
 
-graph_builder = StateGraph(State)
+# StateGraph banake nodes + edges wire karo
+graph_builder = StateGraph(State)  # Graph builder instance
 
 
-graph_builder.add_node("detect_query", detect_query)
-graph_builder.add_node("solve_coding_question", solve_coding_question)
-graph_builder.add_node("solve_simple_question", solve_simple_question)
-graph_builder.add_node("route_edge", route_edge)
+graph_builder.add_node("detect_query", detect_query)  # Node: detect
+graph_builder.add_node("solve_coding_question", solve_coding_question)  # Node: coding solve
+graph_builder.add_node("solve_simple_question", solve_simple_question)  # Node: simple chat
+graph_builder.add_node("route_edge", route_edge)  # Node: router
 
-graph_builder.add_edge(START, "detect_query")
-graph_builder.add_conditional_edges("detect_query", route_edge)
+# Start se pehle detect_query run hoga
+graph_builder.add_edge(START, "detect_query")  # START -> detect
+graph_builder.add_conditional_edges("detect_query", route_edge)  # detect -> route
 
-graph_builder.add_edge("solve_coding_question", END)
-graph_builder.add_edge("solve_simple_question", END)
+# Jo bhi route select hua, uske baad END
+graph_builder.add_edge("solve_coding_question", END)  # coding -> END
+graph_builder.add_edge("solve_simple_question", END)  # simple -> END
 
-graph = graph_builder.compile()
+# Graph ko compile karna zaroori hai before invoke
+graph = graph_builder.compile()  # Final runnable graph
 
 
 # Use the Graph
 
 def call_graph():
+    # Initial state set karo
     state = {
-        "user_message": "Hello ji!",
-        "ai_message": "",
-        "is_coding_question": False
+        "user_message": "Can you explain pydantic in Python?",  # Sample user input
+        "ai_message": "",  # Placeholder for AI reply
+        "is_coding_question": False  # Default routing flag
     }
     
-    result = graph.invoke(state)
+    # Graph run karke final state lo
+    result = graph.invoke(state)  # Graph execution
     
+    # Output print karo
+    print("Final Result", result)  # Final state output
 
-    print("Final Result", result)
-
-call_graph()
+call_graph()  # Function call
