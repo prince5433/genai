@@ -51,6 +51,8 @@ def detect_query(state: State):
     state["is_coding_question"] = result.choices[0].message.parsed.is_question_ai
     return state  # Updated state return
 
+# Routing function: decide karo next node based on detect_query ka output
+# ye langgraph ka ek limitation hai ki conditional edges ke liye fixed return type chahiye hota hai, isliye Literal use kar rahe hain
 def route_edge(state: State) -> Literal["solve_coding_question", "solve_simple_question"]:
     # Route decide karne ke liye flag uthao
     is_coding_question = state.get("is_coding_question")  # Boolean flag
