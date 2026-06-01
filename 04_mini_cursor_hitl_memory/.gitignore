@@ -1,4 +1,13 @@
 .env
 data/
+data2/
 __pycache__/
 *.pyc
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite3
+*.sqlite3-journal

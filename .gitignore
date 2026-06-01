@@ -71,3 +71,16 @@ Thumbs.db
 # *.h5
 # *.pkl
 # *.pickle
+
+# Local databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite-journal
+*.sqlite3
+*.sqlite3-journal
+
+# Vector DB/local indices
+**/qdrant/
