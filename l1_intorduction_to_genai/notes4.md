@@ -216,25 +216,24 @@ Use cases:
 
 ### 5.7 RLHF
 
-RLHF ka full form hai Reinforcement Learning from Human Feedback.
+Agar tum RLHF ki baat kar rahe ho, to iska full form hai Reinforcement Learning from Human Feedback.
 
-RLHF mein humans model ke multiple outputs ko compare/rate karte hain. Model learn karta hai ki kaunsa answer more helpful, safe, and preferred hai.
+Ye AI models ko train karne ki ek technique hai:
 
-High-level flow:
+Model pehle bahut saara data padhkar train hota hai.
+Kisi question ke kai answers generate karta hai.
+Human reviewers batate hain ki kaunsa answer better hai.
+AI un human preferences se seekhta hai.
+Reinforcement learning ki madad se model ko aise train kiya jata hai ki future me woh zyada useful, safe aur helpful answers de.
 
-1. Model multiple responses generate karta hai
-2. Humans responses ko rank karte hain
-3. Reward model train hota hai
-4. Main model reward ke according improve hota hai
+Simple example:
 
-RLHF mainly alignment ke liye use hota hai:
+User: "Python ka loop kaise kaam karta hai?"
+Model 2 alag answers deta hai.
+Humans answer A ko answer B se better rate karte hain.
+Model seekh leta hai ki A jaisa response dena zyada accha hai.
 
-- Helpful answers
-- Safe behavior
-- Better conversational quality
-- Human preference ke closer output
-
----
+ChatGPT jaise models ki training me bhi RLHF ka use kiya jata hai taaki responses zyada natural aur helpful ho sakein.
 
 ## 6. Fine Tuning Dataset
 

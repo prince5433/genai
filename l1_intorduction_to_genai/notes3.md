@@ -53,27 +53,27 @@
 
 ## 4. LLM → Agent
 
-**Agent = LLM + Tools + Decision Making**
+**Agent = LLM (Brain) + Planning + Memory + Tools**
 
-- Jab LLM sirf jawab nahi deta, balki **khud actions leta hai** → Agent ban jaata hai
-- Agent ek goal leke kaam karta hai, aur tools use karta hai
+- Jab LLM sirf response generate nahi karta, balki **apne aap decision lekar complex tasks complete karta hai**, toh use **Agent** kehte hain.
+- Agent ek goal ke saath kaam karta hai aur zarurat padhne par alag-alag tools ko use karta hai.
 
-### Agent kaise kaam karta hai:
+### Core Components of an Agent:
+1. **Brain (LLM):** Sochne aur decision lene ke liye.
+2. **Planning:**
+   - **Sub-goal decomposition:** Bade task ko chhote-chhote steps mein todna.
+   - **ReAct (Reason + Act):** Pehle reason karna (sochna) fir act karna (tool chalana) aur output dekhkar agla step decide karna.
+3. **Memory:**
+   - **Short-term Memory:** Chat history ko yaad rakhna.
+   - **Long-term Memory:** Vector Database ya RAG ke through purani information recall karna.
+4. **Tools:** External APIs, Web Search, Python Calculator, Database Reader jo LLM ko direct computational power dete hain.
+
+### Agent Flow:
 ```
-User Request
-    ↓
-LLM (sochta hai)
-    ↓
-Tool call karta hai (jaise weather API)
-    ↓
-Result aata hai
-    ↓
-Final Answer deta hai
+User Request ──> LLM (Planning & Reasoning) ──> Tool Call (e.g., Search/API)
+                                                    │
+User ko Final Answer <── LLM (Analyze Results) <────┘
 ```
-
-### Example — Weather Agent:
-- User: "Aaj Delhi mein barish hogi?"
-- Agent: Weather API call karta hai → Data laata hai → Answer deta hai
 
 ---
 
@@ -81,19 +81,32 @@ Final Answer deta hai
 
 ### Inferencing (Use karna):
 - **Inferencing = Trained model se output lena**
-- Jab hum ChatGPT se kuch poochte hain → Inferencing ho raha hai
-- Fast hota hai, GPU chahiye
+- Jab hum ChatGPT se kuch poochte hain → Inferencing ho raha hai.
+- Fast hota hai, inference pipelines optimized hoti hain.
 
 ### Training (Sikhana):
 - **Training = Model ko data se seekhna sikhana**
-- Bahut zyada compute aur data chahiye
-- Companies (OpenAI, Google) pehle train karti hain, hum sirf use karte hain
+- Bahut zyada compute (GPUs) aur massive raw text datasets chahiye.
 
-| | Training | Inferencing |
+| Feature | Training | Inferencing |
 |---|---|---|
-| Purpose | Model banao | Model use karo |
-| Cost | Bahut zyada | Kam |
-| Time | Weeks/Months | Milliseconds |
+| **Purpose** | Naya model ya brain banana | Banaye hue model se kaam lena |
+| **Cost** | Millions of dollars (Bahut zyada) | Kam (Pay per token/API cost) |
+| **Time** | Weeks/Months lagte hain | Milliseconds/Seconds mein answer |
+
+---
+
+## 5.5 Fine-Tuning (Model Customization)
+
+**Fine-Tuning = Kisi pre-trained model ko specific data par customize karna**
+
+- **Kyoon karte hain?** Pre-trained models (jaise GPT-4, LLaMA) generic hote hain. Agar humein model ko specific legal documents, medical files, ya kisi proprietary programming language ke codes par expert banana hai, toh hum Fine-Tuning karte hain.
+- **Pre-Training vs Fine-Tuning:**
+  - *Pre-Training:* Model zero se seekhta hai (massive compute, high cost).
+  - *Fine-Tuning:* Model pehle se English/Hindi/Maths seekha hua hai, bas hum use apne specific business data par train karke style, tone ya specific knowledge sikha rahe hain (kam data aur kam compute lagta hai).
+- **Popular Techniques:**
+  - **LoRA (Low-Rank Adaptation):** Isme poore model ke parameters ko train nahi kiya jata, balki model ke andar kuch extra chhote weight matrices add karke sirf unhe train kiya jata hai. Isse memory aur resource cost 90% tak kam ho jati hai.
+  - **QLoRA:** LoRA ko quantized version (4-bit representation) ke sath run karna, jisse local ordinary GPUs par bhi bade models train ho sakein.
 
 ---
 
